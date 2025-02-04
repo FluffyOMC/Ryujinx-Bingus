@@ -81,9 +81,23 @@ namespace Ryujinx.Cpu.Jit
         {
             if (!ValidateAddressAndSize(va, size) || !_pages.IsRangeMapped(va, size))
             {
-                throw new InvalidMemoryRegionException($"Not mapped: va=0x{va:X16}, size=0x{size:X16}");
+                if (!ValidateAddress(va))
+                {
+                    throw new InvalidMemoryRegionException($"Invalid virtual address: va=0x{va:X16}");
+                }
+        
+                for (ulong offset = 0; offset < size; offset += PageSize)
+                {
+                    if (!_pages.IsMapped(va + offset))
+                    {
+                        throw new InvalidMemoryRegionException($"Not mapped: va=0x{va:X16} at offset=0x{offset:X}");
+                    }
+                }
+        
+                throw new InvalidMemoryRegionException($"Not fully mapped: va=0x{va:X16}, size=0x{size:X16}");
             }
         }
+
 
         /// <inheritdoc/>
         public void Map(ulong va, ulong pa, ulong size, MemoryMapFlags flags)
