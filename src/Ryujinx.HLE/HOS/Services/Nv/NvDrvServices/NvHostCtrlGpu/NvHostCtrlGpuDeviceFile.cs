@@ -4,6 +4,7 @@ using Ryujinx.HLE.HOS.Services.Nv.NvDrvServices.NvHostCtrlGpu.Types;
 using Ryujinx.Horizon.Common;
 using Ryujinx.Memory;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace Ryujinx.HLE.HOS.Services.Nv.NvDrvServices.NvHostCtrlGpu
@@ -15,6 +16,8 @@ namespace Ryujinx.HLE.HOS.Services.Nv.NvDrvServices.NvHostCtrlGpu
 
         private readonly KEvent _errorEvent;
         private readonly KEvent _unknownEvent;
+        private readonly List<ZbcSetTableArguments> zbcColorTable = new(16);
+        private readonly List<ZbcSetTableArguments> zbcDepthTable = new(16);
 
         public NvHostCtrlGpuDeviceFile(ServiceCtx context, IVirtualMemoryManager memory, ulong owner) : base(context, owner)
         {
@@ -155,8 +158,25 @@ namespace Ryujinx.HLE.HOS.Services.Nv.NvDrvServices.NvHostCtrlGpu
 
         private NvInternalResult ZbcSetTable(ref ZbcSetTableArguments arguments)
         {
-            Logger.Stub?.PrintStub(LogClass.ServiceNv);
-
+            if (arguments.Format >= 32) {
+                return NvInternalResult.InvalidInput;  
+            }
+            switch(arguments.Type) {
+                case 0x0:
+                    if (zbcDepthTable.Count >= 16) {
+                        return NvInternalResult.InvalidInput;  
+                    }
+                    zbcDepthTable.Add(arguments);
+                    break;
+                case 0x1:
+                    if (zbcColorTable.Count >= 16) {
+                        return NvInternalResult.InvalidInput;  
+                    }
+                    zbcColorTable.Add(arguments);
+                    break;
+                default:
+                    return NvInternalResult.InvalidInput;
+            }
             return NvInternalResult.Success;
         }
 
